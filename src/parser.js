@@ -1,3 +1,4 @@
+import { Token } from './token.js';
 import { TokenType } from './tokenTypes.js';
 
 
@@ -85,6 +86,12 @@ export class Parser{
         else if (this.match(TokenType.SET)){
             return this.parseSetStatement();
         }
+        else if (this.match(TokenType.GOTO)){
+            return this.parseGotoStatement();
+        }
+        else if(this.match(TokenType.IF)){
+            return this.parseIfStatement();
+        }
         else{
             const current = this.peek();
             throw new SyntaxError(`Syntax Error at ${current.line} ${current.column}: Expected a statement`)
@@ -113,6 +120,28 @@ export class Parser{
         }
     }
 
+    parseGotoStatement(){
+        const identifier = this.consume(TokenType.IDENTIFIER, "Expected scene name after GOTO")
+        return {
+            type: "GotoStatement",
+            target: identifier.lexeme, 
+        }
+    }
+
+    parseIfStatement(){
+        const identifier = this.consume(TokenType.IDENTIFIER, "Expected condition variable after IF")
+        this.consume(TokenType.LEFT_BRACE, `Expected "{" after IF condition`)
+        const statements = [];
+        while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()){
+            statements.push(this.parseStatement())
+        }
+        this.consume(TokenType.RIGHT_BRACE, `Expected "}" after IF block.`)
+        return {
+            type: "IfStatement",
+            condition: identifier.lexeme,
+            statements: statements,
+        }
+    }
     parse(){
         const scenes = [];
         while(!this.isAtEnd()){

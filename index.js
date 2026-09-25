@@ -2,10 +2,17 @@ import { Lexer } from "./src/lexer.js";
 import { Parser } from "./src/parser.js";
 
 const source = `
-SCENE hallway {
-    SAY "Hello"
-    SET score = 25
+SCENE entrance {
     SET hasKey = true
+
+    IF hasKey {
+        SAY "The door opens."
+        GOTO hallway
+    }
+}
+
+SCENE hallway {
+    SAY "You entered the hallway."
 }
 `;
 
