@@ -1,4 +1,3 @@
-import { Token } from './token.js';
 import { TokenType } from './tokenTypes.js';
 
 
@@ -128,7 +127,7 @@ export class Parser{
     parseChoiceOption(){
         const stringToken = this.consume(TokenType.STRING, "Expected Choice text.")
         this.consume(TokenType.ARROW, `Expected "->" after choice text`)
-        const identifierToken = this.consume(TokenType.IDENTIFIER, "Expected Identifier after ->")
+        const identifierToken = this.consume(TokenType.IDENTIFIER, `Expected destination scene after "->".`)
         return {
             text: stringToken.literal,
             target: identifierToken.lexeme,
@@ -136,7 +135,7 @@ export class Parser{
     }
     
     parseChoiceStatement(){
-        this.consume(TokenType.LEFT_BRACE, "Expected { after choice.")
+        this.consume(TokenType.LEFT_BRACE, 'Expected "{" after CHOICE.')
         const options = [];
         if(this.check(TokenType.RIGHT_BRACE)){
             throw new SyntaxError(`Expected CHOICE requires at least one option.`)
@@ -172,6 +171,7 @@ export class Parser{
             throw new SyntaxError(`Syntax Error at ${current.line} ${current.column}: Expected a statement`)
         }
     }
+
     parse(){
         const scenes = [];
         while(!this.isAtEnd()){
@@ -183,5 +183,4 @@ export class Parser{
             scenes: scenes,
         }
     }
-
 }
