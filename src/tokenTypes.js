@@ -1,0 +1,18 @@
+export const TokenType = {
+    SCENE: "SCENE",
+    SAY: "SAY",
+    SET: "SET",
+    IF: "IF",
+    GOTO: "GOTO",
+    CHOICE: "CHOICE",
+    TRUE: "TRUE",
+    FALSE: "FALSE",
+    STRING: "STRING",
+    LEFT_BRACE: "LEFT_BRACE",
+    RIGHT_BRACE: "RIGHT_BRACE",
+    IDENTIFIER: "IDENTIFIER",
+    NUMBER: "NUMBER",
+    EQUAL: "EQUAL",
+    ARROW: "ARROW",
+    EOF: "EOF",
+};
