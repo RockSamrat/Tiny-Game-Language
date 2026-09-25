@@ -79,25 +79,7 @@ export class Parser{
         }
     }
 
-    parseStatement(){
-        if (this.match(TokenType.SAY)){
-            return this.parseSayStatement()
-        }
-        else if (this.match(TokenType.SET)){
-            return this.parseSetStatement();
-        }
-        else if (this.match(TokenType.GOTO)){
-            return this.parseGotoStatement();
-        }
-        else if(this.match(TokenType.IF)){
-            return this.parseIfStatement();
-        }
-        else{
-            const current = this.peek();
-            throw new SyntaxError(`Syntax Error at ${current.line} ${current.column}: Expected a statement`)
-        }
-    }
-
+    
     parseValue(){
         if(this.match(TokenType.STRING, TokenType.NUMBER, TokenType.TRUE, TokenType.FALSE)){
             const token = this.previous();
@@ -142,6 +124,54 @@ export class Parser{
             statements: statements,
         }
     }
+
+    parseChoiceOption(){
+        const stringToken = this.consume(TokenType.STRING, "Expected Choice text.")
+        this.consume(TokenType.ARROW, `Expected "->" after choice text`)
+        const identifierToken = this.consume(TokenType.IDENTIFIER, "Expected Identifier after ->")
+        return {
+            text: stringToken.literal,
+            target: identifierToken.lexeme,
+        } 
+    }
+    
+    parseChoiceStatement(){
+        this.consume(TokenType.LEFT_BRACE, "Expected { after choice.")
+        const options = [];
+        if(this.check(TokenType.RIGHT_BRACE)){
+            throw new SyntaxError(`Expected CHOICE requires at least one option.`)
+        }
+        while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()){
+            options.push(this.parseChoiceOption());
+        }
+        this.consume(TokenType.RIGHT_BRACE, `Expected "}" after CHOICE options.`)
+        return {
+            type: "ChoiceStatement",
+            options: options,
+        }
+    }
+
+    parseStatement(){
+        if (this.match(TokenType.SAY)){
+            return this.parseSayStatement()
+        }
+        else if (this.match(TokenType.SET)){
+            return this.parseSetStatement();
+        }
+        else if (this.match(TokenType.GOTO)){
+            return this.parseGotoStatement();
+        }
+        else if(this.match(TokenType.IF)){
+            return this.parseIfStatement();
+        }
+        else if(this.match(TokenType.CHOICE)){
+            return this.parseChoiceStatement();
+        }
+        else{
+            const current = this.peek();
+            throw new SyntaxError(`Syntax Error at ${current.line} ${current.column}: Expected a statement`)
+        }
+    }
     parse(){
         const scenes = [];
         while(!this.isAtEnd()){
@@ -153,6 +183,5 @@ export class Parser{
             scenes: scenes,
         }
     }
-
 
 }
