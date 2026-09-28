@@ -1,5 +1,6 @@
 import { Lexer } from "./src/lexer.js";
 import { Parser } from "./src/parser.js";
+import { Validator } from "./src/semanticValidator.js"
 
 const source = `
 SCENE entrance {
@@ -7,7 +8,7 @@ SCENE entrance {
 
     IF hasKey {
         SAY "The door opens."
-        GOTO hallway
+        GOTO basement
     }
 }
 
@@ -21,5 +22,8 @@ const tokens = lexer.scanTokens();
 
 const parser = new Parser(tokens);
 const ast = parser.parse();
+
+const validator = new Validator(ast);
+validator.validate();
 
 console.dir(ast, { depth: null });
