@@ -199,3 +199,62 @@ SCENE hallway {
     /Expected a statement/,
   );
 });
+
+test("parser includes line and column in syntax errors", () => {
+  assert.throws(
+    () => parseSource("\nSCENE { }"),
+    /Syntax error at line 2, column 7: Expected scene name/,
+  );
+});
+
+test("parser rejects a missing opening scene brace", () => {
+  assert.throws(
+    () => parseSource("SCENE entrance SAY \"Hello\""),
+    /Expected "\{" after scene name/,
+  );
+});
+
+test("parser rejects SET without a variable name", () => {
+  assert.throws(
+    () => parseSource("SCENE entrance { SET = true }"),
+    /Expected variable name after SET/,
+  );
+});
+
+test("parser rejects SET without a value", () => {
+  assert.throws(
+    () => parseSource("SCENE entrance { SET ready = }"),
+    /Expected a string, whole number, true, or false/,
+  );
+});
+
+test("parser rejects a missing IF opening brace", () => {
+  assert.throws(
+    () => parseSource("SCENE entrance { IF ready SAY \"No brace\" }"),
+    /Expected "\{" after IF condition/,
+  );
+});
+
+test("parser rejects CHOICE options without an arrow", () => {
+  assert.throws(
+    () => parseSource('SCENE entrance { CHOICE { "Go" ending } }'),
+    /Expected "->" after choice text/,
+  );
+});
+
+test("parser rejects CHOICE options without a destination", () => {
+  assert.throws(
+    () => parseSource('SCENE entrance { CHOICE { "Go" -> } }'),
+    /Expected destination scene after "->"/,
+  );
+});
+
+test("parser parses END as a special destination name", () => {
+  const ast = parseSource(`
+SCENE entrance {
+  CHOICE { "Finish" -> END }
+}
+`);
+
+  assert.equal(ast.scenes[0].statements[0].options[0].target, "END");
+});

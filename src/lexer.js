@@ -1,9 +1,12 @@
 import { TokenType } from "./tokenTypes.js";
 import { Token } from "./token.js";
 
+export class Lexer {
+    constructor(source) {
+        if (typeof source !== "string") {
+            throw new TypeError("Lexer source must be a string.");
+        }
 
-export class Lexer{
-    constructor(source){
         this.source = source;
         this.tokens = [];
         this.start = 0;
@@ -11,164 +14,147 @@ export class Lexer{
         this.line = 1;
         this.column = 1;
         this.keywords = {
-            SCENE  : TokenType.SCENE,
-            SAY    : TokenType.SAY,
-            SET    : TokenType.SET,
-            IF     : TokenType.IF,
-            GOTO   : TokenType.GOTO,
-            CHOICE : TokenType.CHOICE,
-            true   : TokenType.TRUE,
-            false  : TokenType.FALSE,
-        }
+            SCENE: TokenType.SCENE,
+            SAY: TokenType.SAY,
+            SET: TokenType.SET,
+            IF: TokenType.IF,
+            GOTO: TokenType.GOTO,
+            CHOICE: TokenType.CHOICE,
+            true: TokenType.TRUE,
+            false: TokenType.FALSE,
+        };
     }
 
-    isAtEnd(){
+    isAtEnd() {
         return this.current >= this.source.length;
     }
 
-    advance(){
-        const character = this.source[this.current]
-
-        this.current = this.current + 1;
-        this.column = this.column + 1;
-
+    advance() {
+        const character = this.source[this.current];
+        this.current++;
+        this.column++;
         return character;
     }
 
-    addToken(tokenType, literal = null){
-        const lexeme = this.source.slice(this.start, this.current)
-        const token = new Token (
+    addToken(tokenType, literal = null) {
+        const lexeme = this.source.slice(this.start, this.current);
+        const token = new Token(
             tokenType,
             lexeme,
             literal,
             this.startLine,
             this.startColumn,
-        )
+        );
 
         this.tokens.push(token);
     }
 
-    scanString(){
-        while (!this.isAtEnd() && this.peek() !== `"`){
-            if (this.peek() === "\n"){
-                console.error(`Multiline strings are not allowed at line: ${this.line}, Column: ${this.column}`)
-                return
+    lexicalError(message) {
+        return new SyntaxError(
+            `Lexical error at line ${this.startLine}, column ${this.startColumn}: ${message}`,
+        );
+    }
+
+    scanString() {
+        while (!this.isAtEnd() && this.peek() !== `"`) {
+            if (this.peek() === "\n" || this.peek() === "\r") {
+                throw this.lexicalError("Multiline strings are not allowed.");
             }
             this.advance();
         }
-        if (this.isAtEnd()){
-            console.error(` Unterminated string at line: ${this.line}, Column: ${this.column}`)
-            return
+
+        if (this.isAtEnd()) {
+            throw this.lexicalError("Unterminated string.");
         }
-        this.advance()
+
+        this.advance();
         const literal = this.source.slice(this.start + 1, this.current - 1);
         this.addToken(TokenType.STRING, literal);
     }
 
-    match(character){
-        if (this.isAtEnd()){
-            return false
+    match(character) {
+        if (this.isAtEnd() || character !== this.source[this.current]) {
+            return false;
         }
-        else if(character !== this.source[this.current]){
-            return false
-        }
-        else{
-            this.advance();
-            return true
-        }
+
+        this.advance();
+        return true;
     }
 
-    isAlphabet(character){
-        if(character === null){
-            return false
-        }
-        if (character >= "a" && character <= "z"){
-            return true
-        }
-        else if (character >= "A" && character <= "Z"){
-            return true
-        }
-        else{
-            return false
-        }
+    isIdentifierStart(character) {
+        return character !== null && (
+            (character >= "a" && character <= "z")
+            || (character >= "A" && character <= "Z")
+            || character === "_"
+        );
     }
 
-    isNumber(character){
-        if(character === null){
-            return false
-        }
-        if (character >= "0" && character <= "9"){
-            return true
-        }
-        else{
-            return false
-        }
+    isDigit(character) {
+        return character !== null && character >= "0" && character <= "9";
     }
 
-    isAlphaNumeric(character){
-        return this.isAlphabet(character) || this.isNumber(character)
+    isIdentifierPart(character) {
+        return this.isIdentifierStart(character) || this.isDigit(character);
     }
 
-    scanIdentifier(){
-        while (this.isAlphaNumeric(this.peek())){
+    scanIdentifier() {
+        while (this.isIdentifierPart(this.peek())) {
             this.advance();
         }
+
         const word = this.source.slice(this.start, this.current);
-        let tokenType = this.keywords[word]
-        if (tokenType === undefined){
-            tokenType = TokenType.IDENTIFIER
+        let tokenType = this.keywords[word];
+        if (tokenType === undefined) {
+            tokenType = TokenType.IDENTIFIER;
         }
-        else if (tokenType === TokenType.TRUE){
-            this.addToken(tokenType, true)
-            return
+        else if (tokenType === TokenType.TRUE) {
+            this.addToken(tokenType, true);
+            return;
         }
-        else if (tokenType === TokenType.FALSE){
-            this.addToken(tokenType, false)
-            return
+        else if (tokenType === TokenType.FALSE) {
+            this.addToken(tokenType, false);
+            return;
         }
-        this.addToken(tokenType)
+
+        this.addToken(tokenType);
     }
 
-    scanNumber(){
-        while (this.isNumber(this.peek())){
+    scanNumber() {
+        while (this.isDigit(this.peek())) {
             this.advance();
         }
+
         const numberText = this.source.slice(this.start, this.current);
-        const numberValue = Number(numberText);
-        this.addToken(TokenType.NUMBER, numberValue)
+        this.addToken(TokenType.NUMBER, Number(numberText));
     }
 
-    peek(){
-        if (this.isAtEnd()){
-            return null
+    peek() {
+        if (this.isAtEnd()) {
+            return null;
         }
-        else{
-            const character = this.source[this.current]
-            return character
-        }
+
+        return this.source[this.current];
     }
 
-    scanTokens(){
-        while(!this.isAtEnd()){
+    scanTokens() {
+        while (!this.isAtEnd()) {
             this.start = this.current;
             this.startLine = this.line;
             this.startColumn = this.column;
-            const currentCharacter = this.advance()
+            const currentCharacter = this.advance();
 
             switch (currentCharacter) {
                 case "{":
-                    this.addToken(TokenType.LEFT_BRACE)
+                    this.addToken(TokenType.LEFT_BRACE);
                     break;
                 case "}":
-                    this.addToken(TokenType.RIGHT_BRACE)
+                    this.addToken(TokenType.RIGHT_BRACE);
                     break;
                 case "=":
-                    this.addToken(TokenType.EQUAL)
+                    this.addToken(TokenType.EQUAL);
                     break;
                 case " ":
-                    break;
                 case "\t":
-                    break;
                 case "\r":
                     break;
                 case "\n":
@@ -176,36 +162,36 @@ export class Lexer{
                     this.column = 1;
                     break;
                 case "-":
-                    if (this.match(">")){
-                        this.addToken(TokenType.ARROW)
-                    } 
-                    else {
-                        console.error(`Lexical error at line: ${this.startLine}, column: ${this.startColumn}, Unexpected character "${currentCharacter}"`)
+                    if (!this.match(">")) {
+                        throw this.lexicalError('Unexpected character "-".');
                     }
+                    this.addToken(TokenType.ARROW);
                     break;
                 case `"`:
                     this.scanString();
                     break;
                 default:
-                    if (this.isAlphabet(currentCharacter)){
+                    if (this.isIdentifierStart(currentCharacter)) {
                         this.scanIdentifier();
                     }
-                    else if (this.isNumber(currentCharacter)){
+                    else if (this.isDigit(currentCharacter)) {
                         this.scanNumber();
                     }
                     else {
-                    console.error(`Lexical error at line: ${this.startLine}, column: ${this.startColumn}, Unexpected character "${currentCharacter}"`)
+                        throw this.lexicalError(
+                            `Unexpected character "${currentCharacter}".`,
+                        );
                     }
             }
         }
-        const finalToken = new Token (
+
+        this.tokens.push(new Token(
             TokenType.EOF,
             "",
             null,
             this.line,
             this.column,
-        )
-        this.tokens.push(finalToken)
+        ));
         return this.tokens;
     }
 }

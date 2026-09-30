@@ -1,186 +1,218 @@
-import { TokenType } from './tokenTypes.js';
+import { TokenType } from "./tokenTypes.js";
 
-
-export class Parser{
-    constructor(tokenArray){
-        this.tokens = tokenArray;
-        this.current = 0
+export class Parser {
+    constructor(tokens) {
+        this.tokens = tokens;
+        this.current = 0;
     }
 
-    peek(){
-        const currentToken = this.tokens[this.current]
-        return currentToken
+    peek() {
+        return this.tokens[this.current];
     }
 
-    isAtEnd(){
-        const current = this.peek();
-        return current.type === TokenType.EOF
+    isAtEnd() {
+        return this.peek().type === TokenType.EOF;
     }
 
-    previous(){
+    previous() {
         return this.tokens[this.current - 1];
     }
 
-    advance(){
-        if(!this.isAtEnd()){
+    advance() {
+        if (!this.isAtEnd()) {
             this.current++;
         }
-        return this.previous()
+        return this.previous();
     }
 
-    check(type){
-        const current = this.peek();
-        return type === current.type;
+    check(type) {
+        return this.peek().type === type;
     }
 
-    match(...types){
-        for (const type of types){
-            if (this.check(type)){
+    match(...types) {
+        for (const type of types) {
+            if (this.check(type)) {
                 this.advance();
-                return true
+                return true;
             }
         }
-        return false
+        return false;
     }
 
-    consume(type, message){
-        if(this.check(type)){
-            return this.advance()
-        }
-        else{
-            const current = this.peek();
-            throw new SyntaxError(`Syntax Error at ${current.line} ${current.column}: ${message}`)
-        }
+    syntaxError(token, message) {
+        return new SyntaxError(
+            `Syntax error at line ${token.line}, column ${token.column}: ${message}`,
+        );
     }
 
+    consume(type, message) {
+        if (this.check(type)) {
+            return this.advance();
+        }
+        throw this.syntaxError(this.peek(), message);
+    }
 
-    parseScene(){
+    parseScene() {
         this.consume(TokenType.SCENE, "Expected SCENE at the beginning of a scene.");
-        const identifier = this.consume(TokenType.IDENTIFIER, "Expected scene name after SCENE.");
+        const identifier = this.consume(
+            TokenType.IDENTIFIER,
+            "Expected scene name after SCENE.",
+        );
         this.consume(TokenType.LEFT_BRACE, `Expected "{" after scene name.`);
+
         const statements = [];
-        while(!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()){
-            statements.push(this.parseStatement())
+        while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()) {
+            statements.push(this.parseStatement());
         }
         this.consume(TokenType.RIGHT_BRACE, `Expected "}" after scene body.`);
+
         return {
-            type: 'Scene',
+            type: "Scene",
             name: identifier.lexeme,
-            statements: statements,
-        }
+            statements,
+        };
     }
 
-    parseSayStatement(){
-        const stringToken = this.consume(TokenType.STRING, "Expected String after SAY.");
+    parseSayStatement() {
+        const stringToken = this.consume(
+            TokenType.STRING,
+            "Expected a string after SAY.",
+        );
         return {
             type: "SayStatement",
             text: stringToken.literal,
-        }
+        };
     }
 
-    
-    parseValue(){
-        if(this.match(TokenType.STRING, TokenType.NUMBER, TokenType.TRUE, TokenType.FALSE)){
-            const token = this.previous();
-            return token.literal;
+    parseValue() {
+        if (this.match(
+            TokenType.STRING,
+            TokenType.NUMBER,
+            TokenType.TRUE,
+            TokenType.FALSE,
+        )) {
+            return this.previous().literal;
         }
-        else{
-            const current = this.peek();
-            throw new SyntaxError(`Syntax Error at ${current.line} ${current.column}: Expected a string, number, true or false`)
-        }
+
+        throw this.syntaxError(
+            this.peek(),
+            "Expected a string, whole number, true, or false.",
+        );
     }
 
-    parseSetStatement(){
-        const identifier = this.consume(TokenType.IDENTIFIER, "Expected variable name after SET")
-        this.consume(TokenType.EQUAL, `Expected "=" after variable name`)
-        const literal = this.parseValue();
+    parseSetStatement() {
+        const identifier = this.consume(
+            TokenType.IDENTIFIER,
+            "Expected variable name after SET.",
+        );
+        this.consume(TokenType.EQUAL, `Expected "=" after variable name.`);
+        const value = this.parseValue();
+
         return {
             type: "SetStatement",
             name: identifier.lexeme,
-            value: literal
-        }
+            value,
+        };
     }
 
-    parseGotoStatement(){
-        const identifier = this.consume(TokenType.IDENTIFIER, "Expected scene name after GOTO")
+    parseGotoStatement() {
+        const identifier = this.consume(
+            TokenType.IDENTIFIER,
+            "Expected scene name after GOTO.",
+        );
         return {
             type: "GotoStatement",
-            target: identifier.lexeme, 
-        }
+            target: identifier.lexeme,
+        };
     }
 
-    parseIfStatement(){
-        const identifier = this.consume(TokenType.IDENTIFIER, "Expected condition variable after IF")
-        this.consume(TokenType.LEFT_BRACE, `Expected "{" after IF condition`)
+    parseIfStatement() {
+        const identifier = this.consume(
+            TokenType.IDENTIFIER,
+            "Expected condition variable after IF.",
+        );
+        this.consume(TokenType.LEFT_BRACE, `Expected "{" after IF condition.`);
+
         const statements = [];
-        while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()){
-            statements.push(this.parseStatement())
+        while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()) {
+            statements.push(this.parseStatement());
         }
-        this.consume(TokenType.RIGHT_BRACE, `Expected "}" after IF block.`)
+        this.consume(TokenType.RIGHT_BRACE, `Expected "}" after IF block.`);
+
         return {
             type: "IfStatement",
             condition: identifier.lexeme,
-            statements: statements,
-        }
+            statements,
+        };
     }
 
-    parseChoiceOption(){
-        const stringToken = this.consume(TokenType.STRING, "Expected Choice text.")
-        this.consume(TokenType.ARROW, `Expected "->" after choice text`)
-        const identifierToken = this.consume(TokenType.IDENTIFIER, `Expected destination scene after "->".`)
+    parseChoiceOption() {
+        const stringToken = this.consume(
+            TokenType.STRING,
+            "Expected choice text.",
+        );
+        this.consume(TokenType.ARROW, `Expected "->" after choice text.`);
+        const identifierToken = this.consume(
+            TokenType.IDENTIFIER,
+            `Expected destination scene after "->".`,
+        );
+
         return {
             text: stringToken.literal,
             target: identifierToken.lexeme,
-        } 
+        };
     }
-    
-    parseChoiceStatement(){
-        this.consume(TokenType.LEFT_BRACE, 'Expected "{" after CHOICE.')
-        const options = [];
-        if(this.check(TokenType.RIGHT_BRACE)){
-            throw new SyntaxError(`Expected CHOICE requires at least one option.`)
+
+    parseChoiceStatement() {
+        this.consume(TokenType.LEFT_BRACE, `Expected "{" after CHOICE.`);
+        if (this.check(TokenType.RIGHT_BRACE)) {
+            throw this.syntaxError(
+                this.peek(),
+                "CHOICE requires at least one option.",
+            );
         }
-        while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()){
+
+        const options = [];
+        while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()) {
             options.push(this.parseChoiceOption());
         }
-        this.consume(TokenType.RIGHT_BRACE, `Expected "}" after CHOICE options.`)
+        this.consume(TokenType.RIGHT_BRACE, `Expected "}" after CHOICE options.`);
+
         return {
             type: "ChoiceStatement",
-            options: options,
-        }
+            options,
+        };
     }
 
-    parseStatement(){
-        if (this.match(TokenType.SAY)){
-            return this.parseSayStatement()
+    parseStatement() {
+        if (this.match(TokenType.SAY)) {
+            return this.parseSayStatement();
         }
-        else if (this.match(TokenType.SET)){
+        if (this.match(TokenType.SET)) {
             return this.parseSetStatement();
         }
-        else if (this.match(TokenType.GOTO)){
+        if (this.match(TokenType.GOTO)) {
             return this.parseGotoStatement();
         }
-        else if(this.match(TokenType.IF)){
+        if (this.match(TokenType.IF)) {
             return this.parseIfStatement();
         }
-        else if(this.match(TokenType.CHOICE)){
+        if (this.match(TokenType.CHOICE)) {
             return this.parseChoiceStatement();
         }
-        else{
-            const current = this.peek();
-            throw new SyntaxError(`Syntax Error at ${current.line} ${current.column}: Expected a statement`)
-        }
+
+        throw this.syntaxError(this.peek(), "Expected a statement.");
     }
 
-    parse(){
+    parse() {
         const scenes = [];
-        while(!this.isAtEnd()){
-            const parsed = this.parseScene();
-            scenes.push(parsed)
+        while (!this.isAtEnd()) {
+            scenes.push(this.parseScene());
         }
+
         return {
             type: "Program",
-            scenes: scenes,
-        }
+            scenes,
+        };
     }
 }

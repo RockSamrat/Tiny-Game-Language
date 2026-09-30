@@ -1,0 +1,33 @@
+SCENE entrance {
+    SAY "You enter a dark room."
+    SET hasKey = false
+    SET seesWriting = true
+
+    IF seesWriting {
+        SAY "Writing on the wall points toward a hidden chest."
+        IF hasKey {
+            SAY "The key in your hand begins to glow."
+            GOTO hallway
+        }
+    }
+
+    CHOICE {
+        "Open the chest" -> treasureRoom
+        "Leave the room" -> ending
+    }
+}
+
+SCENE hallway {
+    SAY "You entered the hallway."
+    GOTO END
+}
+
+SCENE treasureRoom {
+    SAY "You found treasure."
+    GOTO ending
+}
+
+SCENE ending {
+    SAY "The story has ended."
+    GOTO END
+}

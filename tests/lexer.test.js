@@ -113,3 +113,80 @@ test("empty source produces only EOF", () => {
   assert.equal(tokens[0].line, 1);
   assert.equal(tokens[0].column, 1);
 });
+
+test("lexer recognizes every keyword and keeps keywords case-sensitive", () => {
+  const tokens = new Lexer(
+    "SCENE SAY SET IF GOTO CHOICE true false scene TRUE",
+  ).scanTokens();
+
+  assert.deepEqual(tokens.map((token) => token.type), [
+    TokenType.SCENE,
+    TokenType.SAY,
+    TokenType.SET,
+    TokenType.IF,
+    TokenType.GOTO,
+    TokenType.CHOICE,
+    TokenType.TRUE,
+    TokenType.FALSE,
+    TokenType.IDENTIFIER,
+    TokenType.IDENTIFIER,
+    TokenType.EOF,
+  ]);
+});
+
+test("lexer stores string, whole-number, and Boolean literal values", () => {
+  const tokens = new Lexer('"hello" 123 true false').scanTokens();
+
+  assert.deepEqual(
+    tokens.slice(0, -1).map((token) => token.literal),
+    ["hello", 123, true, false],
+  );
+});
+
+test("lexer tracks positions across CRLF lines", () => {
+  const tokens = new Lexer("SCENE first {\r\n\tSAY \"Hi\"\r\n}").scanTokens();
+  const say = tokens.find((token) => token.type === TokenType.SAY);
+  const string = tokens.find((token) => token.type === TokenType.STRING);
+  const eof = tokens.at(-1);
+
+  assert.deepEqual(
+    { line: say.line, column: say.column },
+    { line: 2, column: 2 },
+  );
+  assert.deepEqual(
+    { line: string.line, column: string.column },
+    { line: 2, column: 6 },
+  );
+  assert.deepEqual(
+    { line: eof.line, column: eof.column },
+    { line: 3, column: 2 },
+  );
+});
+
+test("lexer rejects unknown characters with their position", () => {
+  assert.throws(
+    () => new Lexer("\n  @").scanTokens(),
+    /Lexical error at line 2, column 3: Unexpected character "@"/,
+  );
+});
+
+test("lexer rejects a lone hyphen instead of treating it as an arrow", () => {
+  assert.throws(
+    () => new Lexer("-").scanTokens(),
+    /Unexpected character "-"/,
+  );
+});
+
+test("lexer rejects unterminated strings", () => {
+  assert.throws(
+    () => new Lexer('SAY "unfinished').scanTokens(),
+    /Unterminated string/,
+  );
+});
+
+test("lexer rejects multiline strings", () => {
+  assert.throws(
+    () => new Lexer('SAY "first\nsecond"').scanTokens(),
+    /Multiline strings are not allowed/,
+  );
+});

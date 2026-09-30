@@ -1,0 +1,184 @@
+SCENE prologue {
+    SAY "THE LAST BEACON"
+    SAY "A storm has swallowed the coast of Nepal's great mountain lake."
+    SAY "One by one, the village lights disappear beneath the rain."
+    SAY "You are Asha, the new keeper of an abandoned signal tower."
+    SAY "A rescue boat is lost in the darkness, and the beacon is silent."
+
+    SET heroName = "Asha"
+    SET minutesLeft = 12
+    SET hasCopperKey = false
+    SET knowsSignalCode = false
+    SET beaconPowered = false
+    SET trustsVoice = false
+
+    SAY "Thunder shakes the tower. You have twelve minutes before the boat reaches the rocks."
+
+    CHOICE {
+        "Search the old keeper's study" -> keepersStudy
+        "Climb to the broken antenna" -> antennaDeck
+    }
+}
+
+SCENE keepersStudy {
+    SAY "Dusty maps cover the walls of the keeper's study."
+    SAY "Inside a locked journal, you find a copper key and one final message:"
+    SAY "The voice in the storm is not our enemy. Listen before you judge."
+
+    SET hasCopperKey = true
+    SET trustsVoice = true
+
+    IF hasCopperKey {
+        SAY "The copper key is warm in your hand."
+
+        IF trustsVoice {
+            SAY "You decide to remember the keeper's warning."
+        }
+    }
+
+    CHOICE {
+        "Take the key to the generator room" -> generatorRoom
+        "Follow a map into the tunnel below" -> floodedTunnel
+    }
+}
+
+SCENE antennaDeck {
+    SAY "Rain lashes the antenna deck as lightning turns the lake silver."
+    SAY "The antenna is damaged, but a sequence of lights still flashes: 3, 1, 4."
+    SAY "You recognize it as an emergency signal code."
+
+    SET knowsSignalCode = true
+
+    IF knowsSignalCode {
+        SAY "You memorize the code: three, one, four."
+
+        IF hasCopperKey {
+            SAY "The copper key vibrates near the antenna."
+        }
+    }
+
+    CHOICE {
+        "Use the signal code in the generator room" -> generatorRoom
+        "Answer the mysterious voice on the radio" -> radioVoice
+    }
+}
+
+SCENE floodedTunnel {
+    SAY "The tunnel beneath the tower is ankle-deep in freezing water."
+    SAY "Carved into the stone are three numbers: 3, 1, 4."
+    SAY "Below them, someone wrote: A light can guide more than ships."
+
+    SET knowsSignalCode = true
+
+    IF knowsSignalCode {
+        SAY "You now know the tower's emergency override code."
+    }
+
+    GOTO generatorRoom
+}
+
+SCENE radioVoice {
+    SAY "A voice emerges through the static."
+    SAY "Keeper, I am trapped beyond the storm. Restore the beacon, and I can guide the boat."
+    SAY "The voice sounds afraid, but human."
+
+    CHOICE {
+        "Trust the voice" -> trustTheVoice
+        "Turn off the radio and work alone" -> workAlone
+    }
+}
+
+SCENE trustTheVoice {
+    SET trustsVoice = true
+    SAY "You promise the voice that you will bring the beacon back."
+    GOTO generatorRoom
+}
+
+SCENE workAlone {
+    SET trustsVoice = false
+    SAY "You silence the radio. Only the thunder answers."
+    GOTO generatorRoom
+}
+
+SCENE generatorRoom {
+    SAY "The generator room smells of oil and burned wires."
+    SAY "Its control panel offers two ways to restore power."
+
+    IF hasCopperKey {
+        SAY "The copper key fits the manual ignition switch."
+        SET beaconPowered = true
+    }
+
+    IF knowsSignalCode {
+        SAY "The emergency code unlocks the electrical override."
+        SET beaconPowered = true
+    }
+
+    IF beaconPowered {
+        SAY "The generator roars awake. A golden beam cuts through the storm."
+
+        IF trustsVoice {
+            SAY "The radio voice whispers: Thank you, Asha. Now choose where the light should point."
+        }
+    }
+
+    GOTO controlRoom
+}
+
+SCENE controlRoom {
+    SAY "In the control room, the rescue boat appears as a tiny green dot on the radar."
+    SAY "A second signal glows far beyond it, where no ship should be."
+
+    IF beaconPowered {
+        SAY "The restored beacon is ready for one final command."
+    }
+
+    IF knowsSignalCode {
+        SAY "The code reveals a safe channel through the rocks."
+    }
+
+    IF trustsVoice {
+        SAY "The mysterious voice waits patiently on the radio."
+    }
+
+    CHOICE {
+        "Guide the rescue boat to the village" -> villageEnding
+        "Turn the beacon toward the unknown signal" -> starsEnding
+        "Overload the beacon so it shines in every direction" -> sacrificeEnding
+    }
+}
+
+SCENE villageEnding {
+    SAY "You aim the beam across the safest water."
+    SAY "The rescue boat turns just before the rocks and follows the light home."
+
+    IF knowsSignalCode {
+        SAY "Because you learned the code, every passenger reaches shore safely."
+    }
+
+    SAY "At dawn, the village calls you the keeper who defeated the storm."
+    SAY "ENDING: THE LIGHT THAT CAME HOME"
+    GOTO END
+}
+
+SCENE starsEnding {
+    SAY "You turn the beacon beyond the lake, toward the impossible signal."
+    SAY "For one breathless moment, the storm becomes completely silent."
+
+    IF trustsVoice {
+        SAY "The voice says: I have been searching for your world for a very long time."
+    }
+
+    SAY "Above the clouds, a new star opens its eyes."
+    SAY "ENDING: THE ANSWER IN THE SKY"
+    GOTO END
+}
+
+SCENE sacrificeEnding {
+    SAY "You push every circuit beyond its limit."
+    SAY "The beacon erupts like a second sunrise, revealing every rock and every wave."
+    SAY "The boat reaches safety as the old tower goes dark forever."
+    SAY "Years later, people still tell the story of Asha's final, brilliant light."
+    SAY "ENDING: TWELVE MINUTES OF DAYLIGHT"
+    GOTO END
+}

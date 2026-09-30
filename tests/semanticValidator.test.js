@@ -113,3 +113,53 @@ test("rejects a missing GOTO target inside a nested IF", () => {
         /Scene does not exist: missingRoom/
     );
 });
+
+test("allows END as a GOTO and CHOICE destination", () => {
+    const source = `
+        SCENE entrance {
+            SET finished = true
+            IF finished {
+                GOTO END
+            }
+            CHOICE {
+                "Finish" -> END
+            }
+        }
+    `;
+
+    assert.equal(validateSource(source), true);
+});
+
+test("rejects an undefined IF variable inside a nested IF", () => {
+    const source = `
+        SCENE entrance {
+            SET outer = true
+            IF outer {
+                IF missing {
+                    SAY "Never"
+                }
+            }
+        }
+    `;
+
+    assert.throws(
+        () => validateSource(source),
+        /Variable does not exist: missing/
+    );
+});
+
+test("accepts variables defined in nested blocks", () => {
+    const source = `
+        SCENE entrance {
+            IF outer {
+                SET outer = true
+                SET inner = false
+                IF inner {
+                    SAY "Nested"
+                }
+            }
+        }
+    `;
+
+    assert.equal(validateSource(source), true);
+});

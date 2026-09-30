@@ -1,67 +1,76 @@
-
-
-export class Validator{
-    constructor(ast){
+export class SemanticValidator {
+    constructor(ast) {
         this.ast = ast;
         this.sceneNames = new Set();
         this.variables = new Set();
     }
 
-    collectSceneNames(){
-        for (const scene of this.ast.scenes){
-            if(this.sceneNames.has(scene.name)){
-                throw new Error(`Duplicate Scene Names: ${scene.name}`)
+    collectSceneNames() {
+        for (const scene of this.ast.scenes) {
+            if (this.sceneNames.has(scene.name)) {
+                throw new Error(`Duplicate Scene Names: ${scene.name}`);
             }
             this.sceneNames.add(scene.name);
         }
     }
-    
-    validateStatement(statements){
-        for (const statement of statements){
-            if (statement.type === "GotoStatement"){
-                if (!this.sceneNames.has(statement.target)){
-                    throw new Error(`Scene does not exist: ${statement.target}`)
-                }
+
+    collectVariables(statements) {
+        for (const statement of statements) {
+            if (statement.type === "SetStatement") {
+                this.variables.add(statement.name);
             }
-            if (statement.type === "ChoiceStatement"){
-                for (const option of statement.options){
-                    if(!this.sceneNames.has(option.target)){
-                        throw new Error(`Scene does not exist: ${option.target}`)
-                    }
-                }
-            }
-            if (statement.type === "IfStatement"){
-                if(!this.variables.has(statement.condition)){
-                    throw new Error(`Variable does not exist: ${statement.condition}`)
-                }
-                this.validateStatement(statement.statements)
+            if (statement.type === "IfStatement") {
+                this.collectVariables(statement.statements);
             }
         }
     }
 
-    collectVariables(statements){
-        for (const statement of statements){
-            if(statement.type === 'SetStatement'){
-                this.variables.add(statement.name)
+    validateTarget(target) {
+        if (target !== "END" && !this.sceneNames.has(target)) {
+            throw new Error(`Scene does not exist: ${target}`);
+        }
+    }
+
+    validateStatements(statements) {
+        for (const statement of statements) {
+            if (statement.type === "GotoStatement") {
+                this.validateTarget(statement.target);
             }
-            if(statement.type === 'IfStatement'){
-                this.collectVariables(statement.statements)
+            else if (statement.type === "ChoiceStatement") {
+                for (const option of statement.options) {
+                    this.validateTarget(option.target);
+                }
+            }
+            else if (statement.type === "IfStatement") {
+                if (!this.variables.has(statement.condition)) {
+                    throw new Error(`Variable does not exist: ${statement.condition}`);
+                }
+                this.validateStatements(statement.statements);
             }
         }
     }
-    
-    validateAllStatements(){
-            for (const scene of this.ast.scenes){
-                this.validateStatement(scene.statements);
-            }
+
+    validateAllStatements() {
+        for (const scene of this.ast.scenes) {
+            this.validateStatements(scene.statements);
+        }
     }
 
-    validate(){
+    validate() {
+        if (this.ast?.type !== "Program" || !Array.isArray(this.ast.scenes)) {
+            throw new Error("Semantic validator expected a Program AST.");
+        }
+
+        this.sceneNames.clear();
+        this.variables.clear();
         this.collectSceneNames();
-        for (const scene of this.ast.scenes){
+        for (const scene of this.ast.scenes) {
             this.collectVariables(scene.statements);
         }
         this.validateAllStatements();
         return true;
     }
 }
+
+// Preserve the original public class name for existing callers.
+export { SemanticValidator as Validator };
