@@ -1,19 +1,17 @@
 import { Lexer } from "./src/lexer.js";
 import { Parser } from "./src/parser.js";
-import { Validator } from "./src/semanticValidator.js"
+import { Validator } from "./src/semanticValidator.js";
+import { Interpreter } from "./src/interpreter.js";
 
 const source = `
 SCENE entrance {
-    SET hasKey = true
-
-    IF hasKey {
-        SAY "The door opens."
-        GOTO basement
-    }
+    SAY "Entrance"
+    GOTO hallway
+    SAY "Skipped"
 }
 
 SCENE hallway {
-    SAY "You entered the hallway."
+    SAY "Hallway"
 }
 `;
 
@@ -26,4 +24,4 @@ const ast = parser.parse();
 const validator = new Validator(ast);
 validator.validate();
 
-console.dir(ast, { depth: null });
+const interpreter = new Interpreter(ast).run();
